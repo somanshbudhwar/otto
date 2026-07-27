@@ -8,14 +8,35 @@ files:
   - package.json
 asarUnpack:
   - resources/**
+
+# Otto is distributed unsigned. This hook applies an ad-hoc signature so
+# Apple Silicon will launch the app at all; see build/after-pack.js.
+afterPack: build/after-pack.js
+
 mac:
   category: public.app-category.developer-tools
+  # No Developer ID. Set this to your identity (and add notarization) if you
+  # ever buy one — that is also the point at which electron-updater becomes
+  # usable and src/main/core/updates.ts can be retired.
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  # Asset names are a contract: updates.ts picks a download by matching
+  # `-${process.arch}.` against them.
+  artifactName: ${productName}-${version}-${arch}.${ext}
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
 win:
   target:
     - nsis
+
 linux:
   target:
     - AppImage

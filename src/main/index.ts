@@ -8,6 +8,7 @@ import type {
   Project,
   ProviderId,
   Session,
+  UpdateInfo,
   Workspace
 } from '@shared/types'
 import { runAgentTurn } from './agent/loop'
@@ -25,6 +26,7 @@ import {
   workspaceDiff
 } from './core/git'
 import { getStore } from './core/store'
+import { checkForUpdate, startUpdateWatcher } from './core/updates'
 import { createProvider } from './providers'
 
 let mainWindow: BrowserWindow | null = null
@@ -331,15 +333,44 @@ function registerIpc(): void {
       return { ok: false, error: (err as Error).message }
     }
   })
+
+  // --- updates ---
+  ipcMain.handle('updates:check', (): Promise<UpdateInfo | null> => checkForUpdate())
+
+  // The renderer only ever passes URLs we handed it, but this handler reaches
+  // the OS — constrain it to GitHub over https rather than trust the caller.
+  ipcMain.handle('updates:download', async (_e, url: string) => {
+    let parsed: URL
+    try {
+      parsed = new URL(url)
+    } catch {
+      return
+    }
+    const host = parsed.hostname.toLowerCase()
+    const allowed = host === 'github.com' || host.endsWith('.github.com')
+    if (parsed.protocol === 'https:' && allowed) await shell.openExternal(parsed.href)
+  })
+
+  ipcMain.handle('updates:skip', (_e, version: string) =>
+    store.updateSettings({ skippedVersion: version })
+  )
 }
 
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
 
+let stopUpdateWatcher: (() => void) | null = null
+
 app.whenReady().then(() => {
   registerIpc()
   createWindow()
+
+  const store = getStore()
+  stopUpdateWatcher = startUpdateWatcher(
+    (info) => send('updates:available', info),
+    (version) => store.getSettings().skippedVersion === version
+  )
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -349,4 +380,9 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   for (const controller of running.values()) controller.abort()
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('before-quit', () => {
+  stopUpdateWatcher?.()
+  stopUpdateWatcher = null
 })

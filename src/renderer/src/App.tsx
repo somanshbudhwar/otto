@@ -6,6 +6,7 @@ import type {
   ModelSelection,
   Project,
   TranscriptEntry,
+  UpdateInfo,
   Workspace,
   WorkspaceDiff
 } from '@shared/types'
@@ -14,6 +15,7 @@ import DiffView from './components/DiffView'
 import ModelBar from './components/ModelBar'
 import Settings from './components/Settings'
 import Transcript from './components/Transcript'
+import UpdateToast from './components/UpdateToast'
 
 export default function App(): JSX.Element {
   const [settings, setSettings] = useState<AppSettings | null>(null)
@@ -30,6 +32,7 @@ export default function App(): JSX.Element {
   const [bashRequest, setBashRequest] = useState<BashRequest | null>(null)
   const [banner, setBanner] = useState<string | null>(null)
   const [committing, setCommitting] = useState(false)
+  const [update, setUpdate] = useState<UpdateInfo | null>(null)
 
   const activeIdRef = useRef<string | null>(null)
   activeIdRef.current = activeId
@@ -134,6 +137,20 @@ export default function App(): JSX.Element {
   }, [refreshDiff])
 
   useEffect(() => window.otto.agent.onBashRequest(setBashRequest), [])
+
+  useEffect(() => window.otto.updates.onAvailable(setUpdate), [])
+
+  // The watcher in main pushes later checks, but its first one races this
+  // component mounting its listener — so run one deterministic check here.
+  const updateChecked = useRef(false)
+  useEffect(() => {
+    if (!settings || updateChecked.current) return
+    updateChecked.current = true
+    const skipped = settings.skippedVersion
+    void window.otto.updates.check().then((info) => {
+      if (info && info.version !== skipped) setUpdate(info)
+    })
+  }, [settings])
 
   // --- actions -----------------------------------------------------------
 
@@ -430,6 +447,17 @@ export default function App(): JSX.Element {
           onRespond={(approved) => {
             void window.otto.agent.respondBash(bashRequest.requestId, approved)
             setBashRequest(null)
+          }}
+        />
+      )}
+
+      {update && (
+        <UpdateToast
+          info={update}
+          onDismiss={() => setUpdate(null)}
+          onSkip={() => {
+            void window.otto.updates.skip(update.version)
+            setUpdate(null)
           }}
         />
       )}

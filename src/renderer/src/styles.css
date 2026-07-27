@@ -820,6 +820,91 @@ select {
   accent-color: var(--accent);
 }
 
+/* ------------------------------------------------------------ update toast */
+
+.update-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 330px;
+  /* Below the modal overlay (100) so Settings and bash prompts still win. */
+  z-index: 60;
+  padding: 13px 14px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+  animation: update-rise 160ms ease-out;
+}
+
+@keyframes update-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-toast {
+    animation: none;
+  }
+}
+
+.update-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.update-title {
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.update-close {
+  border: 0;
+  background: none;
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.update-close:hover {
+  color: var(--text-dim);
+}
+
+.update-body {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.update-notes {
+  margin: 9px 0 0;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-faint);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.update-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 11px;
+}
+
 /* --------------------------------------------------------------- scrollbar */
 
 ::-webkit-scrollbar {

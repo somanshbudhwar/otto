@@ -228,4 +228,24 @@ export interface AppSettings {
   defaultModel: ModelSelection
   /** Auto-approve bash commands instead of prompting. Off by default. */
   autoApproveBash: boolean
+  /** Release the user chose to skip; suppresses the update toast for it. */
+  skippedVersion?: string
+}
+
+// ---------------------------------------------------------------------------
+// Updates
+// ---------------------------------------------------------------------------
+
+/** A published release newer than the running build. */
+export interface UpdateInfo {
+  /** Release tag with any leading "v" stripped. */
+  version: string
+  /** Version of the running build, so the toast can show both. */
+  currentVersion: string
+  /** Direct link to the .dmg for this machine, or the release page if absent. */
+  downloadUrl: string
+  releaseUrl: string
+  /** Release notes body, when the release has one. */
+  notes?: string
+  publishedAt?: number
 }

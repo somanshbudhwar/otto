@@ -6,6 +6,7 @@ import type {
   Project,
   ProviderId,
   Session,
+  UpdateInfo,
   Workspace,
   WorkspaceDiff
 } from '@shared/types'
@@ -91,6 +92,20 @@ const api = {
       message: string
     ): Promise<{ ok: boolean; sha?: string; error?: string }> =>
       ipcRenderer.invoke('git:commit', workspaceId, message)
+  },
+
+  updates: {
+    /** Resolves null when up to date, offline, or running in dev. */
+    check: (): Promise<UpdateInfo | null> => ipcRenderer.invoke('updates:check'),
+    /** Opens the .dmg link in the user's browser. */
+    download: (url: string): Promise<void> => ipcRenderer.invoke('updates:download', url),
+    /** Suppresses the toast for this version until a newer one ships. */
+    skip: (version: string): Promise<AppSettings> => ipcRenderer.invoke('updates:skip', version),
+    onAvailable: (handler: (info: UpdateInfo) => void): (() => void) => {
+      const listener = (_: unknown, payload: UpdateInfo): void => handler(payload)
+      ipcRenderer.on('updates:available', listener)
+      return () => ipcRenderer.removeListener('updates:available', listener)
+    }
   }
 }
 

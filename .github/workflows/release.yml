@@ -1,0 +1,60 @@
+name: Release
+
+# Tagging is the release trigger. Use `npm run release:patch` (or :minor /
+# :major) so the tag and package.json version can never drift apart.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    # Apple Silicon runner; electron-builder cross-packages the x64 build too.
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # The app compares its baked-in package.json version against the release
+      # tag. If they drift, every user gets an update prompt they can never
+      # satisfy — so fail the build instead of shipping that.
+      - name: Verify tag matches package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${PKG}."
+            echo "Bump with 'npm version' and re-tag rather than tagging by hand."
+            exit 1
+          fi
+          echo "Releasing v${PKG}"
+
+      - run: npm ci
+
+      - name: Build DMGs
+        # --publish never: the upload is handled explicitly in the next step.
+        run: npm run dist:mac -- --publish never
+
+      - name: Confirm both architectures built
+        run: |
+          ls -lh release/*.dmg
+          for arch in arm64 x64; do
+            if ! ls release/*-"$arch".dmg >/dev/null 2>&1; then
+              echo "::error::No ${arch} DMG was produced."
+              exit 1
+            fi
+          done
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.dmg
+          generate_release_notes: true
+          fail_on_unmatched_files: true
