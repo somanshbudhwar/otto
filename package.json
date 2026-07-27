@@ -1,6 +1,6 @@
 {
   "name": "otto",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A local-first, bring-your-own-key agentic coding workspace",
   "main": "./out/main/index.js",
   "author": "somanshbudhwar",
